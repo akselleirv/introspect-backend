@@ -2,18 +2,37 @@ package events
 
 import (
 	"encoding/json"
-	"fmt"
+	"github.com/akselleirv/introspect/handler"
 	"github.com/akselleirv/introspect/models"
-	"github.com/akselleirv/introspect/server"
+	"github.com/akselleirv/introspect/room"
 	"log"
 )
 
-func Setup(s server.Server) {
-	s.AddEvent("ping", func(data map[string]interface{}) {
-		var msg models.Join
-		parseToJson(&data, &msg)
-		s.SendMsg("test", fmt.Sprintf("hello there %s", msg.Player))
-	})
+func Setup(h handler.Handler) func(r room.Room) {
+	return func(r room.Room) {
+		h.AddEvent("ping", func(data map[string]interface{}) {
+			var msg models.Ping
+			parseToJson(&data, &msg)
+			ping := models.Ping{
+				Event:  "ping",
+				Player: msg.Player,
+			}
+			b, _ := json.Marshal(ping)
+			r.SendMsg(msg.Player, b)
+		})
+		h.AddEvent("ping_broadcast", func(data map[string]interface{}) {
+			var msg models.Ping
+			parseToJson(&data, &msg)
+			ping := models.Ping{
+				Event:  "ping_broadcast",
+				Player: msg.Player,
+			}
+			b, _ := json.Marshal(ping)
+			r.Broadcast(b)
+
+		})
+	}
+
 }
 
 func parseToJson(data *map[string]interface{}, msg interface{}) {

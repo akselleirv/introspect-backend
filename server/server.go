@@ -1,96 +1,84 @@
 package server
 
 import (
+	"fmt"
+	"github.com/akselleirv/introspect/events"
+	"github.com/akselleirv/introspect/handler"
+	"github.com/akselleirv/introspect/room"
 	"github.com/gorilla/websocket"
 	"log"
+	"sync"
 )
 
 type Server interface {
-	AddEvent(eventName string, fn eventHandler)
-	Broadcast(msg string)
-	SendMsg(player, msg string)
+	NewConn(c *websocket.Conn, playerName, roomName string)
 }
 
 type Serve struct {
-	EventHandlers map[string]eventHandler
-	players       map[string]player
-}
-
-type player struct {
-	name      string
-	sendMsgCh chan<- string
-}
-
-type eventHandler = func(msg map[string]interface{})
-
-const Event = "event"
-
-func (s *Serve) handleMsg(msg map[string]interface{}) {
-	e, ok := msg[Event].(string)
-	if !ok {
-		log.Println("sent event is not a string")
-		return
-	}
-	delete(msg, Event)
-	handler, ok := s.EventHandlers[e]
-	if !ok {
-		log.Println("unable to find event in event handlers: ", e)
-		return
-	}
-	handler(msg)
-}
-
-func (s *Serve) NewConn(c *websocket.Conn, playerName string) {
-	ch := make(chan string)
-	p := player{name: playerName, sendMsgCh: ch}
-	s.players[playerName] = p
-
-	go s.readMessages(c)
-	go writeMessage(c, ch)
+	rooms map[string]room.Room
+	mu    sync.RWMutex
 }
 
 func NewServer() *Serve {
-	return &Serve{EventHandlers: make(map[string]eventHandler), players: make(map[string]player)}
+	return &Serve{rooms: make(map[string]room.Room), mu: sync.RWMutex{}}
 }
 
-func (s *Serve) readMessages(c *websocket.Conn) {
-	msg := make(map[string]interface{})
-	for {
-		err := c.ReadJSON(&msg)
+func (s *Serve) NewConn(c *websocket.Conn, playerName, roomName string) {
+	if exist := s.roomExist(roomName); !exist {
+		h := handler.NewHandler()
+		initEventHandlers := events.Setup(h)
+		msgHandler := h.HandleMsg()
+		r, err := s.createRoom(roomName, initEventHandlers, msgHandler)
 		if err != nil {
-			log.Println("read:", err)
-			break
+			log.Println(err)
+			return
 		}
-		log.Printf("recv: %s", msg)
+		s.registerNewRoom(roomName, r)
+	}
 
-		s.handleMsg(msg)
+	s.addPlayerToRoom(c, playerName, roomName)
+}
+
+func (s *Serve) deleteRoom(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.rooms[name]; ok {
+		delete(s.rooms, name)
 	}
 }
 
-func writeMessage(c *websocket.Conn, msgToSend <-chan string) {
-	var err error
-	for m := range msgToSend {
-		err = c.WriteMessage(1, []byte(m))
-		if err != nil {
-			log.Println("unable to write to client: ", err)
-		}
+func (s *Serve) addPlayerToRoom(c *websocket.Conn, playerName, roomName string) {
+	if r, ok := s.getRoom(roomName); ok {
+		r.AddClient(c, playerName)
+	} else {
+		// handle error - that room does not exist
 	}
-
 }
 
-func (s *Serve) AddEvent(eventName string, fn eventHandler) {
-	s.EventHandlers[eventName] = fn
+// RoomExist returns true if the room name exist and false if it does not
+func (s *Serve) roomExist(roomName string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	_, ok := s.rooms[roomName]
+	return ok
 }
 
-func (s *Serve) Broadcast(msg string) {
-
-}
-
-func (s *Serve) SendMsg(player, msg string) {
-	p, ok := s.players[player]
-	if !ok {
-		log.Println("unable to find player: ", player)
-		return
+func (s *Serve) createRoom(name string, initEventHandlers func(r room.Room), msgHandler func(msg map[string]interface{})) (room.Room, error) {
+	if exist := s.roomExist(name); exist {
+		return nil, fmt.Errorf("room '%s' already exists", name)
 	}
-	p.sendMsgCh <- msg
+	return room.NewRoom(name, initEventHandlers, msgHandler, func() {s.deleteRoom(name)}), nil
+}
+
+func (s *Serve) registerNewRoom(name string, r room.Room) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.rooms[name] = r
+}
+
+func (s *Serve) getRoom(roomName string) (room.Room, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	r, ok := s.rooms[roomName]
+	return r, ok
 }

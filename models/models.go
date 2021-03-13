@@ -1,10 +1,15 @@
 package models
 
-
-type Join struct {
-	Player string `json:"player"`
+type PlayerJoined struct {
+	Event string `json:"event"`
+	Name  string `json:"name"`
+}
+type PlayerLeft struct {
+	Event string `json:"event"`
+	Name  string `json:"name"`
 }
 
-type Message struct {
+type Ping struct {
+	Event  string `json:"event"`
 	Player string `json:"player"`
 }
