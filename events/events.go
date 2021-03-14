@@ -29,7 +29,27 @@ func Setup(h handler.Handler) func(r room.Room) {
 			}
 			b, _ := json.Marshal(ping)
 			r.Broadcast(b)
-
+		})
+		h.AddEvent("lobby_chat", func(data map[string]interface{}) {
+			var msg models.LobbyChat
+			parseToJson(&data, &msg)
+			res := models.LobbyChat{
+				Event:   "lobby_chat",
+				Player:  msg.Player,
+				Message: msg.Message,
+			}
+			b, _ := json.Marshal(res)
+			r.Broadcast(b)
+		})
+		h.AddEvent("lobby_player_ready", func(data map[string]interface{}) {
+			var msg models.GenericEvent
+			parseToJson(&data, &msg)
+			res := models.LobbyChat{
+				Event:  "lobby_player_ready",
+				Player: msg.Player,
+			}
+			b, _ := json.Marshal(res)
+			r.Broadcast(b)
 		})
 	}
 

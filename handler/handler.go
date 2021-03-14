@@ -25,7 +25,7 @@ func (h *Handle) AddEvent(eventName string, fn eventHandler) {
 	h.EventHandlers[eventName] = fn
 }
 
-func (h *Handle) HandleMsg() func(msg map[string]interface{}) {
+func (h *Handle) HandleMsg() func(data map[string]interface{}) {
 	return func(msg map[string]interface{}) {
 		e, ok := msg[Event].(string)
 		if !ok {

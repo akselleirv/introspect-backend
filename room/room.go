@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"sync"
+	"time"
 )
 
 type Room interface {
@@ -38,40 +39,32 @@ func NewRoom(name string, initEventHandlers func(r Room), handleMsg func(msg map
 
 func (r *room) removeClient(clientName string) {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	delete(r.clients, clientName)
 	log.Printf("removed client '%s' from room '%s'", clientName, r.name)
-
 	if len(r.clients) == 0 {
 		log.Printf("deleting room '%s' -  no more players", r.name)
 		r.deleteRoom()
 	}
-	b, err := json.Marshal(models.PlayerLeft{
-		Event: "player_left",
-		Name:  clientName,
+	r.mu.Unlock()
+	b, _ := json.Marshal(models.ActivePlayers{
+		Event:   "active_players",
+		Players: r.getActivePlayers(),
 	})
-	if err != nil {
-		log.Println("unable to unmarshal struct when broadcasting new player")
-	}
-
 	r.Broadcast(b)
 }
 
 func (r *room) AddClient(c *websocket.Conn, playerName string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	if _, ok := r.clients[playerName]; !ok {
 		log.Printf("adding player '%s' to room: '%s'", playerName, r.name)
+
+		r.mu.Lock()
 		r.clients[playerName] = client.NewClient(playerName, c, r.msgHandler, func() { r.removeClient(playerName) })
-		b, err := json.Marshal(models.PlayerJoined{
-			Event: "player_joined",
-			Name:  playerName,
+		r.mu.Unlock()
+
+		b, _ := json.Marshal(models.ActivePlayers{
+			Event:   "active_players",
+			Players: r.getActivePlayers(),
 		})
-		if err != nil {
-			log.Println("unable to unmarshal struct when broadcasting new player")
-		}
 		r.Broadcast(b)
 	} else {
 		// playerName already exists
@@ -80,9 +73,11 @@ func (r *room) AddClient(c *websocket.Conn, playerName string) {
 }
 
 func (r *room) Broadcast(msg []byte) {
+	t := time.Now()
 	for _, p := range r.clients {
 		p.Send(msg)
 	}
+	log.Println("Time used to broadcast: ", time.Since(t))
 }
 
 func (r *room) SendMsg(player string, msg []byte) {
@@ -92,4 +87,13 @@ func (r *room) SendMsg(player string, msg []byte) {
 		return
 	}
 	p.Send(msg)
+}
+
+func (r *room) getActivePlayers() (players []string) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for name := range r.clients {
+		players = append(players, name)
+	}
+	return players
 }
