@@ -20,3 +20,9 @@ type LobbyChat struct {
 	Player  string `json:"player"`
 	Message string `json:"message"`
 }
+
+type LobbyPlayersReady struct {
+	Event        string   `json:"event"`
+	ReadyPlayers []string `json:"readyPlayers"`
+	IsAllReady   bool     `json:"isAllReady"`
+}

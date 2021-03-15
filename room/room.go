@@ -3,6 +3,7 @@ package room
 import (
 	"encoding/json"
 	"github.com/akselleirv/introspect/client"
+	"github.com/akselleirv/introspect/game"
 	"github.com/akselleirv/introspect/models"
 	"github.com/gorilla/websocket"
 	"log"
@@ -10,25 +11,29 @@ import (
 	"time"
 )
 
-type Room interface {
-	AddClient(c *websocket.Conn, playerName string)
+type Roomer interface {
+	AddClient(c *websocket.Conn, name string)
 	Broadcast(msg []byte)
-	SendMsg(player string, msg []byte)
+	SendMsg(clientName string, msg []byte)
+	Game() game.Gamer
 }
 
-type room struct {
+type Room struct {
 	name       string
 	clients    map[string]client.Clienter
 	msgHandler func(msg map[string]interface{})
 	deleteRoom func()
 	mu         sync.RWMutex
+
+	game game.Game
 }
 
-func NewRoom(name string, initEventHandlers func(r Room), handleMsg func(msg map[string]interface{}), deleteRoom func()) *room {
-	log.Printf("creating new room: %s", name)
-	r := &room{
+func NewRoom(name string, initEventHandlers func(r Roomer), handleMsg func(msg map[string]interface{}), deleteRoom func()) *Room {
+	log.Printf("creating new Room: %s", name)
+	r := &Room{
 		name:       name,
 		clients:    make(map[string]client.Clienter),
+		game:       game.NewGame(),
 		msgHandler: handleMsg,
 		deleteRoom: deleteRoom,
 		mu:         sync.RWMutex{},
@@ -37,12 +42,13 @@ func NewRoom(name string, initEventHandlers func(r Room), handleMsg func(msg map
 	return r
 }
 
-func (r *room) removeClient(clientName string) {
+func (r *Room) removeClient(clientName string) {
 	r.mu.Lock()
 	delete(r.clients, clientName)
-	log.Printf("removed client '%s' from room '%s'", clientName, r.name)
+	r.game.RemovePlayer(clientName)
+	log.Printf("removed client '%s' from Room '%s'", clientName, r.name)
 	if len(r.clients) == 0 {
-		log.Printf("deleting room '%s' -  no more players", r.name)
+		log.Printf("deleting Room '%s' -  no more players", r.name)
 		r.deleteRoom()
 	}
 	r.mu.Unlock()
@@ -53,13 +59,15 @@ func (r *room) removeClient(clientName string) {
 	r.Broadcast(b)
 }
 
-func (r *room) AddClient(c *websocket.Conn, playerName string) {
-	if _, ok := r.clients[playerName]; !ok {
-		log.Printf("adding player '%s' to room: '%s'", playerName, r.name)
+func (r *Room) AddClient(c *websocket.Conn, name string) {
+	if _, ok := r.clients[name]; !ok {
+		log.Printf("adding player '%s' to Room: '%s'", name, r.name)
 
 		r.mu.Lock()
-		r.clients[playerName] = client.NewClient(playerName, c, r.msgHandler, func() { r.removeClient(playerName) })
+		r.clients[name] = client.NewClient(name, c, r.msgHandler, func() { r.removeClient(name) })
 		r.mu.Unlock()
+
+		r.game.AddPlayer(name)
 
 		b, _ := json.Marshal(models.ActivePlayers{
 			Event:   "active_players",
@@ -67,12 +75,12 @@ func (r *room) AddClient(c *websocket.Conn, playerName string) {
 		})
 		r.Broadcast(b)
 	} else {
-		// playerName already exists
+		// name already exists
 		// handle error
 	}
 }
 
-func (r *room) Broadcast(msg []byte) {
+func (r *Room) Broadcast(msg []byte) {
 	t := time.Now()
 	for _, p := range r.clients {
 		p.Send(msg)
@@ -80,20 +88,22 @@ func (r *room) Broadcast(msg []byte) {
 	log.Println("Time used to broadcast: ", time.Since(t))
 }
 
-func (r *room) SendMsg(player string, msg []byte) {
-	p, ok := r.clients[player]
+func (r *Room) SendMsg(clientName string, msg []byte) {
+	p, ok := r.clients[clientName]
 	if !ok {
-		log.Println("unable to find player: ", player)
+		log.Println("unable to find clientName: ", clientName)
 		return
 	}
 	p.Send(msg)
 }
 
-func (r *room) getActivePlayers() (players []string) {
+func (r *Room) getActivePlayers() (clientNames []string) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for name := range r.clients {
-		players = append(players, name)
+		clientNames = append(clientNames, name)
 	}
-	return players
+	return clientNames
 }
+
+func (r *Room) Game() game.Gamer { return &r.game }

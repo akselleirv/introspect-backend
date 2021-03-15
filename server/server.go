@@ -15,12 +15,12 @@ type Server interface {
 }
 
 type Serve struct {
-	rooms map[string]room.Room
+	rooms map[string]room.Roomer
 	mu    sync.RWMutex
 }
 
 func NewServer() *Serve {
-	return &Serve{rooms: make(map[string]room.Room), mu: sync.RWMutex{}}
+	return &Serve{rooms: make(map[string]room.Roomer), mu: sync.RWMutex{}}
 }
 
 func (s *Serve) NewConn(c *websocket.Conn, playerName, roomName string) {
@@ -63,20 +63,20 @@ func (s *Serve) roomExist(roomName string) bool {
 	return ok
 }
 
-func (s *Serve) createRoom(name string, initEventHandlers func(r room.Room), msgHandler func(msg map[string]interface{})) (room.Room, error) {
+func (s *Serve) createRoom(name string, initEventHandlers func(r room.Roomer), msgHandler func(msg map[string]interface{})) (room.Roomer, error) {
 	if exist := s.roomExist(name); exist {
 		return nil, fmt.Errorf("room '%s' already exists", name)
 	}
 	return room.NewRoom(name, initEventHandlers, msgHandler, func() {s.deleteRoom(name)}), nil
 }
 
-func (s *Serve) registerNewRoom(name string, r room.Room) {
+func (s *Serve) registerNewRoom(name string, r room.Roomer) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.rooms[name] = r
 }
 
-func (s *Serve) getRoom(roomName string) (room.Room, bool) {
+func (s *Serve) getRoom(roomName string) (room.Roomer, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	r, ok := s.rooms[roomName]

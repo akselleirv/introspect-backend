@@ -8,8 +8,8 @@ import (
 	"log"
 )
 
-func Setup(h handler.Handler) func(r room.Room) {
-	return func(r room.Room) {
+func Setup(h handler.Handler) func(r room.Roomer) {
+	return func(r room.Roomer) {
 		h.AddEvent("ping", func(data map[string]interface{}) {
 			var msg models.Ping
 			parseToJson(&data, &msg)
@@ -44,11 +44,21 @@ func Setup(h handler.Handler) func(r room.Room) {
 		h.AddEvent("lobby_player_ready", func(data map[string]interface{}) {
 			var msg models.GenericEvent
 			parseToJson(&data, &msg)
-			res := models.LobbyChat{
-				Event:  "lobby_player_ready",
-				Player: msg.Player,
+
+			err := r.Game().SetPlayerReady(msg.Player)
+			if err != nil {
+				// TODO: Handle error when setting player ready
+				return
+			}
+
+			rdy, rdyPlayers := r.Game().IsPlayersReady()
+			res := models.LobbyPlayersReady{
+				Event:        "lobby_player_ready",
+				ReadyPlayers: rdyPlayers,
+				IsAllReady:   rdy,
 			}
 			b, _ := json.Marshal(res)
+
 			r.Broadcast(b)
 		})
 	}
