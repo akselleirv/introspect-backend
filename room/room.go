@@ -52,9 +52,11 @@ func (r *Room) removeClient(clientName string) {
 		r.deleteRoom()
 	}
 	r.mu.Unlock()
-	b, _ := json.Marshal(models.ActivePlayers{
-		Event:   "active_players",
-		Players: r.getActivePlayers(),
+	playersUpdate, isAllReady := r.Game().GetRoomStatus()
+	b, _ := json.Marshal(models.LobbyRoomUpdate{
+		Event:      "lobby_room_update",
+		Players:    playersUpdate,
+		IsAllReady: isAllReady,
 	})
 	r.Broadcast(b)
 }
@@ -69,9 +71,11 @@ func (r *Room) AddClient(c *websocket.Conn, name string) {
 
 		r.game.AddPlayer(name)
 
-		b, _ := json.Marshal(models.ActivePlayers{
-			Event:   "active_players",
-			Players: r.getActivePlayers(),
+		playersUpdate, isAllReady := r.Game().GetRoomStatus()
+		b, _ := json.Marshal(models.LobbyRoomUpdate{
+			Event:      "lobby_room_update",
+			Players:    playersUpdate,
+			IsAllReady: isAllReady,
 		})
 		r.Broadcast(b)
 	} else {
@@ -95,15 +99,6 @@ func (r *Room) SendMsg(clientName string, msg []byte) {
 		return
 	}
 	p.Send(msg)
-}
-
-func (r *Room) getActivePlayers() (clientNames []string) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	for name := range r.clients {
-		clientNames = append(clientNames, name)
-	}
-	return clientNames
 }
 
 func (r *Room) Game() game.Gamer { return &r.game }

@@ -51,14 +51,12 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				return
 			}
 
-			rdy, rdyPlayers := r.Game().IsPlayersReady()
-			res := models.LobbyPlayersReady{
-				Event:        "lobby_player_ready",
-				ReadyPlayers: rdyPlayers,
-				IsAllReady:   rdy,
-			}
-			b, _ := json.Marshal(res)
-
+			playersUpdate, isAllReady := r.Game().GetRoomStatus()
+			b, _ := json.Marshal(models.LobbyRoomUpdate{
+				Event:      "lobby_room_update",
+				Players:    playersUpdate,
+				IsAllReady: isAllReady,
+			})
 			r.Broadcast(b)
 		})
 	}

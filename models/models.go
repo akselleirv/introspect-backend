@@ -1,10 +1,5 @@
 package models
 
-type ActivePlayers struct {
-	Event   string   `json:"event"`
-	Players []string `json:"players"`
-}
-
 type Ping struct {
 	Event  string `json:"event"`
 	Player string `json:"player"`
@@ -21,8 +16,13 @@ type LobbyChat struct {
 	Message string `json:"message"`
 }
 
-type LobbyPlayersReady struct {
-	Event        string   `json:"event"`
-	ReadyPlayers []string `json:"readyPlayers"`
-	IsAllReady   bool     `json:"isAllReady"`
+type LobbyRoomUpdate struct {
+	Event      string         `json:"event"`
+	Players    []PlayerUpdate `json:"players"`
+	IsAllReady bool           `json:"isAllReady"`
+}
+
+type PlayerUpdate struct {
+	Name    string `json:"name"`
+	IsReady bool   `json:"isReady"`
 }

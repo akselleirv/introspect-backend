@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"github.com/akselleirv/introspect/models"
 	"log"
 	"sync"
 )
@@ -15,6 +16,7 @@ type Gamer interface {
 	IsPlayersReady() (bool, []string)
 	AddPlayer(playerName string) bool
 	RemovePlayer(playerName string)
+	GetRoomStatus() ([]models.PlayerUpdate, bool)
 }
 
 type Game struct {
@@ -80,4 +82,25 @@ func (g *Game) RemovePlayer(playerName string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	delete(g.players, playerName)
+}
+
+// GetRoomStatus will get the status of the players
+// by returning a map of clientName and a boolean if the player is ready or not
+// and a boolean which is true when all players are ready
+func (g *Game) GetRoomStatus() ([]models.PlayerUpdate, bool) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	var playersUpdate []models.PlayerUpdate
+	isAllReady := true
+	for name, player := range g.players {
+		if !player.ready {
+			isAllReady = false
+		}
+		playersUpdate = append(playersUpdate, models.PlayerUpdate{
+			Name:    name,
+			IsReady: player.ready,
+		})
+	}
+	return playersUpdate, isAllReady
 }
