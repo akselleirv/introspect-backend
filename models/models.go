@@ -26,3 +26,24 @@ type PlayerUpdate struct {
 	Name    string `json:"name"`
 	IsReady bool   `json:"isReady"`
 }
+
+type Question struct {
+	QuestionID string `json:"questionID"`
+	Question   string `json:"question"`
+}
+
+type Vote struct {
+	PlayerWhoReceivedTheVote string `json:"playerWhoReceivedTheVote"`
+	QuestionID               string `json:"questionID"`
+}
+
+type PlayerVotedOnQuestion struct {
+	Player string `json:"player"`
+	Votes  []Vote `json:"votes"`
+}
+
+type RegisterSelfVote struct {
+	Player   string   `json:"player"`
+	Choice   string   `json:"choice"`
+	Question Question `json:"question"`
+}
