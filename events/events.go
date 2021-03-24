@@ -73,25 +73,20 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			})
 			r.SendMsg(msg.Player, b)
 		})
-		h.AddEvent("player_voted_on_question", func(data map[string]interface{}) {
+		h.AddEvent("register_question_vote", func(data map[string]interface{}) {
 			var msg models.PlayerVotedOnQuestion
 			parseToJson(&data, &msg)
 			var b []byte
 			r.Game().SetVotesFromPlayer(msg)
-			nextQuestion, selfVote := r.Game().IsNextQuestionOrSelfVote()
-			if nextQuestion {
-				b, _ = json.Marshal(models.GenericEvent{
-					Event:  "next_question",
-					Player: "",
-				})
-			} else if selfVote {
+			isSelfVoting := r.Game().IsSelfVoting()
+			if isSelfVoting {
 				b, _ = json.Marshal(models.GenericEvent{
 					Event:  "is_self_vote",
 					Player: "",
 				})
 			} else {
 				b, _ = json.Marshal(models.GenericEvent{
-					Event:  "player_has_voted",
+					Event:  "player_has_question_voted",
 					Player: msg.Player,
 				})
 			}
@@ -102,12 +97,19 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			parseToJson(&data, &msg)
 			var b []byte
 
-			r.Game().RegisterSelfVote(msg)
-			yes := r.Game().HasAllPlayersSelfVoted()
-			if yes {
-				log.Println("both players have self voted")
+			r.Game().SetSelfVoteFromPlayer(msg)
+			roundFinished, allFinished := r.Game().IsRoundFinished()
+			log.Println(roundFinished, allFinished)
+			if allFinished {
+				log.Println("round is done")
 				b, _ = json.Marshal(models.GenericEvent{
-					Event:  "next_self_vote",
+					Event:  "game_is_finished",
+					Player: "",
+				})
+			} else if roundFinished {
+				log.Println("all players have self voted")
+				b, _ = json.Marshal(models.GenericEvent{
+					Event:  "round_is_done",
 					Player: "",
 				})
 			} else {

@@ -35,15 +35,14 @@ type Gamer interface {
 	// the room has not yet received
 	GetQuestions() []models.Question
 	SetVotesFromPlayer(question models.PlayerVotedOnQuestion)
-	IsNextQuestionOrSelfVote() (nextQuestion bool, selfVote bool)
-	RegisterSelfVote(vote models.RegisterSelfVote)
-	HasAllPlayersSelfVoted() bool
+	IsSelfVoting() bool
+	SetSelfVoteFromPlayer(vote models.RegisterSelfVote)
+	IsRoundFinished() (bool, bool)
 }
 
 type Game struct {
 	players         map[string]*player
 	currentQuestion int
-	currentSelfVote int
 	questions       []models.Question
 	mu              sync.RWMutex
 }
@@ -59,7 +58,6 @@ func NewGame() Game {
 	return Game{
 		players:         make(map[string]*player),
 		currentQuestion: 1,
-		currentSelfVote: 1,
 		mu:              sync.RWMutex{},
 	}
 }
@@ -168,22 +166,9 @@ func (g *Game) SetVotesFromPlayer(votes models.PlayerVotedOnQuestion) {
 	g.mu.Unlock()
 }
 
-func (g *Game) IsNextQuestionOrSelfVote() (nextQuestion bool, selfVote bool) {
+func (g *Game) IsSelfVoting() bool {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	if g.hasAllPlayersVoted() {
-		if g.currentQuestion%QuestionsPerRound == 0 {
-			log.Println("time for self votes!")
-			selfVote = true
-		} else {
-			g.currentQuestion++
-			nextQuestion = true
-		}
-	}
-	return nextQuestion, selfVote
-}
-
-func (g *Game) hasAllPlayersVoted() bool {
 	var totalVotes int
 	for _, p := range g.players {
 		for _, votes := range p.votes {
@@ -194,25 +179,46 @@ func (g *Game) hasAllPlayersVoted() bool {
 	return expectedTotalVotes == totalVotes
 }
 
-func (g *Game) RegisterSelfVote(vote models.RegisterSelfVote) {
+func (g *Game) SetSelfVoteFromPlayer(vote models.RegisterSelfVote) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if p, exist := g.players[vote.Player]; exist {
-		p.selfVotes[g.currentSelfVote] = SelfVote(vote.Choice)
+		p.selfVotes[g.currentQuestion] = SelfVote(vote.Choice)
 	}
 }
 
-// TODO: make one generic func for counting votes
-func (g *Game) HasAllPlayersSelfVoted() bool {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-	var totalSelfVotes int
+// HaveAllPlayersSelfVoted check if all the players have issued their self vote.
+// It then returns two booleans.
+// First is true if all players have issued their self vote.
+// Second is true if players have self voted AND it is the last round.
+func (g *Game) IsRoundFinished() (bool, bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	var totalSelfVotesForRound int
 	for _, p := range g.players {
-		if p.selfVotes[g.currentSelfVote] != "" {
-			totalSelfVotes++
+		if p.selfVotes[g.currentQuestion] != "" {
+			totalSelfVotesForRound++
 		}
 	}
-	expectedTotalSelfVotes := g.currentSelfVote * len(g.players)
-	log.Printf("expected '%d', got '%d'", expectedTotalSelfVotes, totalSelfVotes)
-	return expectedTotalSelfVotes == totalSelfVotes
+
+	isRoundFinished := len(g.players) == totalSelfVotesForRound
+	areAllRoundsFinished := isRoundFinished && g.currentQuestion == QuestionsPerRound
+	log.Printf("current round is '%d' and round finish status '%t'", g.currentQuestion, isRoundFinished)
+
+	if isRoundFinished {
+		g.currentQuestion++
+	}
+	log.Printf("here")
+	return isRoundFinished, areAllRoundsFinished
+}
+
+// TODO: calculate points for all rounds so far - shall be sent per round
+func (g *Game)  CalculatePoints() {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+
+	for _, p := range g.players {
+
+	}
 }
