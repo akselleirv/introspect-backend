@@ -47,3 +47,15 @@ type RegisterSelfVote struct {
 	Choice   string   `json:"choice"`
 	Question Question `json:"question"`
 }
+
+type PointsEntry struct {
+	Points int    `json:"points"`
+	Player string `json:"player"`
+}
+type QuestionPoints []PointsEntry
+type TotalPoints map[int]QuestionPoints
+
+type QuestionPointsEvent  struct {
+	Event  string `json:"event"`
+	QuestionPoints QuestionPoints `json:"questionPoints"`
+}

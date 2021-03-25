@@ -108,9 +108,9 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				})
 			} else if roundFinished {
 				log.Println("all players have self voted")
-				b, _ = json.Marshal(models.GenericEvent{
-					Event:  "round_is_done",
-					Player: "",
+				b, _ = json.Marshal(models.QuestionPointsEvent{
+					Event:          "round_is_done",
+					QuestionPoints: r.Game().CalculatePointsForCurrentQuestion(),
 				})
 			} else {
 				b, _ = json.Marshal(models.GenericEvent{

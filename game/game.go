@@ -18,6 +18,11 @@ const (
 	MostVoted  SelfVote = "Most Voted"
 	Neutral    SelfVote = "Neutral"
 	LeastVoted SelfVote = "Least Voted"
+
+	MostVotedPoints  = 3
+	NeutralPoints    = 1
+	LeastVotedPoints = 3
+	WrongVotedPoints = 0
 )
 
 type Gamer interface {
@@ -38,6 +43,9 @@ type Gamer interface {
 	IsSelfVoting() bool
 	SetSelfVoteFromPlayer(vote models.RegisterSelfVote)
 	IsRoundFinished() (bool, bool)
+
+	CalculatePointsForCurrentQuestion() models.QuestionPoints
+	CalculatePointsForAllRounds() models.TotalPoints
 }
 
 type Game struct {
@@ -208,17 +216,97 @@ func (g *Game) IsRoundFinished() (bool, bool) {
 	if isRoundFinished {
 		g.currentQuestion++
 	}
-	log.Printf("here")
 	return isRoundFinished, areAllRoundsFinished
 }
 
-// TODO: calculate points for all rounds so far - shall be sent per round
-func (g *Game)  CalculatePoints() {
+func (g *Game) CalculatePointsForAllRounds() models.TotalPoints {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-
-
-	for _, p := range g.players {
-
+	var totalPoints models.TotalPoints = make(map[int]models.QuestionPoints)
+	for i := 0; i < g.currentQuestion; i++ {
+		totalPoints[i] = getPointsForQuestion(g.players, i)
 	}
+	return totalPoints
+}
+
+func (g *Game) CalculatePointsForCurrentQuestion() models.QuestionPoints {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	return getPointsForQuestion(g.players, g.currentQuestion-1)
+}
+
+type playerStat struct {
+	name     string
+	votes    int
+	selfVote SelfVote
+}
+
+func getPointsForQuestion(players map[string]*player, currentRound int) models.QuestionPoints {
+	vs := getPlayerStats(players, currentRound)
+	min, max := findMinAndMaxVotes(vs)
+	leastVoted, neutral, mostVoted := findPlayerPositions(vs, min, max)
+	return givePoints(leastVoted, neutral, mostVoted)
+}
+
+// getPlayerStats converts the player map for the currentRound into a slice
+func getPlayerStats(players map[string]*player, currentRound int) []playerStat {
+	var ps []playerStat
+	for n, p := range players {
+		ps = append(ps, playerStat{name: n, votes: p.votes[currentRound], selfVote: p.selfVotes[currentRound]})
+	}
+	return ps
+}
+
+func findMinAndMaxVotes(playerStats []playerStat) (min, max int) {
+	min = playerStats[0].votes
+	max = playerStats[0].votes
+	for _, playerStat := range playerStats {
+		if playerStat.votes < min {
+			min = playerStat.votes
+		}
+		if playerStat.votes > max {
+			max = playerStat.votes
+		}
+	}
+	return min, max
+}
+func findPlayerPositions(playerStats []playerStat, min, max int) (leastVoted, neutral, mostVoted []playerStat) {
+
+	log.Printf("max: '%d', min: '%d'", max, min)
+	log.Println("playerstats: ", playerStats)
+
+	for _, playerStat := range playerStats {
+		if playerStat.votes == max {
+			mostVoted = append(mostVoted, playerStat)
+		} else if playerStat.votes == min {
+			leastVoted = append(leastVoted, playerStat)
+		} else {
+			neutral = append(neutral, playerStat)
+		}
+	}
+	return leastVoted, neutral, mostVoted
+}
+
+func givePoints(leastVoted, neutral, mostVoted []playerStat) models.QuestionPoints {
+	var qp models.QuestionPoints
+
+	calculatePoints := func(s []playerStat, sv SelfVote, pointToGive int) {
+		for _, p := range s {
+			if p.selfVote == sv {
+				qp = append(qp, models.PointsEntry{
+					Points: pointToGive,
+					Player: p.name,
+				})
+			} else {
+				qp = append(qp, models.PointsEntry{
+					Points: WrongVotedPoints,
+					Player: p.name,
+				})
+			}
+		}
+	}
+	calculatePoints(leastVoted, LeastVoted, LeastVotedPoints)
+	calculatePoints(neutral, Neutral, NeutralPoints)
+	calculatePoints(mostVoted, MostVoted, MostVotedPoints)
+	return qp
 }
