@@ -49,13 +49,15 @@ type RegisterSelfVote struct {
 }
 
 type PointsEntry struct {
-	Points int    `json:"points"`
-	Player string `json:"player"`
+	Player        string `json:"player"`
+	SelfVote      string `json:"selfVote"`
+	VotesReceived int    `json:"votesReceived"`
+	Points        int    `json:"points"`
 }
 type QuestionPoints []PointsEntry
 type TotalPoints map[int]QuestionPoints
 
-type QuestionPointsEvent  struct {
-	Event  string `json:"event"`
+type QuestionPointsEvent struct {
+	Event          string         `json:"event"`
 	QuestionPoints QuestionPoints `json:"questionPoints"`
 }

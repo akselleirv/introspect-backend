@@ -98,18 +98,18 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			var b []byte
 
 			r.Game().SetSelfVoteFromPlayer(msg)
-			roundFinished, allFinished := r.Game().IsRoundFinished()
-			log.Println(roundFinished, allFinished)
+			questionDone, allFinished := r.Game().IsRoundFinished()
+			log.Println(questionDone, allFinished)
 			if allFinished {
 				log.Println("round is done")
 				b, _ = json.Marshal(models.GenericEvent{
 					Event:  "game_is_finished",
 					Player: "",
 				})
-			} else if roundFinished {
-				log.Println("all players have self voted")
+			} else if questionDone {
+				log.Println("all players have self voted for current question")
 				b, _ = json.Marshal(models.QuestionPointsEvent{
-					Event:          "round_is_done",
+					Event:          "question_is_done",
 					QuestionPoints: r.Game().CalculatePointsForCurrentQuestion(),
 				})
 			} else {

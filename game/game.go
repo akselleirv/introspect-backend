@@ -209,14 +209,14 @@ func (g *Game) IsRoundFinished() (bool, bool) {
 		}
 	}
 
-	isRoundFinished := len(g.players) == totalSelfVotesForRound
-	areAllRoundsFinished := isRoundFinished && g.currentQuestion == QuestionsPerRound
-	log.Printf("current round is '%d' and round finish status '%t'", g.currentQuestion, isRoundFinished)
+	questionDone := len(g.players) == totalSelfVotesForRound
+	areAllRoundsFinished := questionDone && g.currentQuestion == QuestionsPerRound
+	log.Printf("current round is '%d' and round finish status '%t'", g.currentQuestion, questionDone)
 
-	if isRoundFinished {
+	if questionDone {
 		g.currentQuestion++
 	}
-	return isRoundFinished, areAllRoundsFinished
+	return questionDone, areAllRoundsFinished
 }
 
 func (g *Game) CalculatePointsForAllRounds() models.TotalPoints {
@@ -290,18 +290,16 @@ func findPlayerPositions(playerStats []playerStat, min, max int) (leastVoted, ne
 func givePoints(leastVoted, neutral, mostVoted []playerStat) models.QuestionPoints {
 	var qp models.QuestionPoints
 
-	calculatePoints := func(s []playerStat, sv SelfVote, pointToGive int) {
+	calculatePoints := func(s []playerStat, sv SelfVote, pointToGiveOnCorrect int) {
 		for _, p := range s {
+			pe := models.PointsEntry{Player: p.name, SelfVote: string(p.selfVote), VotesReceived: p.votes}
+			qp = append(qp, pe)
 			if p.selfVote == sv {
-				qp = append(qp, models.PointsEntry{
-					Points: pointToGive,
-					Player: p.name,
-				})
+				qp[len(qp)-1].Points = pointToGiveOnCorrect
+
 			} else {
-				qp = append(qp, models.PointsEntry{
-					Points: WrongVotedPoints,
-					Player: p.name,
-				})
+				qp[len(qp)-1].Points = WrongVotedPoints
+
 			}
 		}
 	}
