@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"github.com/akselleirv/introspect/models"
 	"testing"
 )
@@ -29,9 +30,37 @@ func TestAddPlayer(t *testing.T) {
 
 }
 
-// TODO: create test
 func TestCalculatePointsForAllRounds(t *testing.T) {
+	g := createTestableGame(t)
 
+	// we want to finish all the rounds -  there are 3 lefts
+	for i := 1; i < QuestionsPerRound; i++ {
+		g.SetVotesFromPlayer(createTwoVotes(p1, p2))
+		g.SetVotesFromPlayer(createTwoVotes(p2, p1))
+		g.SetVotesFromPlayer(createTwoVotes(p3, p1))
+		g.SetSelfVoteFromPlayer(createSelfVote(p1, MostVoted))
+		g.SetSelfVoteFromPlayer(createSelfVote(p2, Neutral))
+		g.SetSelfVoteFromPlayer(createSelfVote(p3, LeastVoted))
+
+		roundFinished, _ := g.IsRoundFinished()
+		if !roundFinished {
+			t.Errorf("expected round to be finished")
+		}
+	}
+	// we add +1 since the round is done and thus making the "currentQuestion" to be 5
+	if g.currentQuestion != QuestionsPerRound+1 {
+		t.Errorf("expected current round to be %d, got %d", QuestionsPerRound, g.currentQuestion)
+	}
+	totalPointsAllRounds := g.CalculatePoints(1, 4)
+	for _, entry := range totalPointsAllRounds {
+		if (entry.Player == p1 || entry.Player == p3) && entry.Points != MostVotedPoints*QuestionsPerRound {
+			t.Errorf("expected player '%s' to have '%d' points, got '%d'", entry.Player, MostVotedPoints*QuestionsPerRound, entry.Points)
+		}
+		if entry.Player == p2 && entry.Points != NeutralPoints*QuestionsPerRound {
+			t.Errorf("expected player '%s' to have '%d' points, got '%d'", entry.Player, NeutralPoints*QuestionsPerRound, entry.Points)
+		}
+	}
+	fmt.Println(totalPointsAllRounds)
 }
 
 func TestFindMinAndMaxVotes(t *testing.T) {

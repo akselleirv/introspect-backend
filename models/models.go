@@ -54,10 +54,22 @@ type PointsEntry struct {
 	VotesReceived int    `json:"votesReceived"`
 	Points        int    `json:"points"`
 }
+
+type PointsEntrySimple struct {
+	Player string `json:"player"`
+	Points int    `json:"points"`
+}
+type PlayersResultsTotal struct {
+	Event                  string              `json:"event"`
+	PlayersResultLastRound []PointsEntrySimple `json:"playersResultLastRound"`
+	PlayersResultsTotal    []PointsEntrySimple `json:"playersResultsTotal"`
+}
+
 type QuestionPoints []PointsEntry
 type TotalPoints map[int]QuestionPoints
 
 type QuestionPointsEvent struct {
-	Event          string         `json:"event"`
-	QuestionPoints QuestionPoints `json:"questionPoints"`
+	Event           string         `json:"event"`
+	QuestionPoints  QuestionPoints `json:"questionPoints"`
+	CurrentQuestion int            `json:"currentQuestion"`
 }

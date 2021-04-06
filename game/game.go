@@ -39,13 +39,14 @@ type Gamer interface {
 	// GetQuestions will return four question that
 	// the room has not yet received
 	GetQuestions() []models.Question
+	GetCurrentQuestion() int
 	SetVotesFromPlayer(question models.PlayerVotedOnQuestion)
 	IsSelfVoting() bool
 	SetSelfVoteFromPlayer(vote models.RegisterSelfVote)
 	IsRoundFinished() (bool, bool)
 
 	CalculatePointsForCurrentQuestion() models.QuestionPoints
-	CalculatePointsForAllRounds() models.TotalPoints
+	CalculatePoints(from, to int) []models.PointsEntrySimple
 }
 
 type Game struct {
@@ -68,6 +69,11 @@ func NewGame() Game {
 		currentQuestion: 1,
 		mu:              sync.RWMutex{},
 	}
+}
+
+// GetLatestQuestion returns the last question number that was answered
+func (g *Game) GetCurrentQuestion() int {
+	return g.currentQuestion -1
 }
 
 func (g *Game) SetPlayerReady(playerName string) error {
@@ -219,14 +225,25 @@ func (g *Game) IsRoundFinished() (bool, bool) {
 	return questionDone, areAllRoundsFinished
 }
 
-func (g *Game) CalculatePointsForAllRounds() models.TotalPoints {
+// CalculatePoints calculates points from the given range of questions
+func (g *Game) CalculatePoints(from, to int) []models.PointsEntrySimple {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
-	var totalPoints models.TotalPoints = make(map[int]models.QuestionPoints)
-	for i := 0; i < g.currentQuestion; i++ {
-		totalPoints[i] = getPointsForQuestion(g.players, i)
+	totalPoints := make(map[string]int)
+	for i := from; i <= to; i++ {
+		qp := getPointsForQuestion(g.players, i)
+		for _, entry := range qp {
+			totalPoints[entry.Player] += entry.Points
+		}
 	}
-	return totalPoints
+	var pes []models.PointsEntrySimple
+	for player, points := range totalPoints {
+		pes = append(pes, models.PointsEntrySimple{
+			Player: player,
+			Points: points,
+		})
+	}
+	return pes
 }
 
 func (g *Game) CalculatePointsForCurrentQuestion() models.QuestionPoints {

@@ -6,7 +6,10 @@ import (
 	"github.com/akselleirv/introspect/models"
 	"github.com/akselleirv/introspect/room"
 	"log"
+	"time"
 )
+
+const QuestionsPerRound = 4
 
 func Setup(h handler.Handler) func(r room.Roomer) {
 	return func(r room.Roomer) {
@@ -101,16 +104,30 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			questionDone, allFinished := r.Game().IsRoundFinished()
 			log.Println(questionDone, allFinished)
 			if allFinished {
-				log.Println("round is done")
-				b, _ = json.Marshal(models.GenericEvent{
-					Event:  "game_is_finished",
-					Player: "",
+				log.Println("game is done")
+				b, _ = json.Marshal(models.QuestionPointsEvent{
+					Event:           "question_is_done",
+					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
+					CurrentQuestion: r.Game().GetCurrentQuestion(),
+				})
+				r.Broadcast(b)
+
+				// here we wait for the last question result to be displayed
+				// then we send the results for all rounds
+				time.Sleep(5 * time.Second)
+				currQ := r.Game().GetCurrentQuestion()
+
+				b, _ = json.Marshal(models.PlayersResultsTotal{
+					Event:                  "game_is_finished",
+					PlayersResultLastRound: r.Game().CalculatePoints(currQ-QuestionsPerRound+1, currQ),
+					PlayersResultsTotal:    r.Game().CalculatePoints(1, currQ),
 				})
 			} else if questionDone {
 				log.Println("all players have self voted for current question")
 				b, _ = json.Marshal(models.QuestionPointsEvent{
-					Event:          "question_is_done",
-					QuestionPoints: r.Game().CalculatePointsForCurrentQuestion(),
+					Event:           "question_is_done",
+					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
+					CurrentQuestion: r.Game().GetCurrentQuestion(),
 				})
 			} else {
 				b, _ = json.Marshal(models.GenericEvent{
