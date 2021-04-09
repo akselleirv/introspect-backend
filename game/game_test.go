@@ -1,13 +1,16 @@
 package game
 
 import (
-	"fmt"
 	"github.com/akselleirv/introspect/models"
 	"testing"
 )
 
-const p1, p2, p3 = "Player AAA", "Player BBB", "Player CCC"
-const p1Votes, p2Votes, p3Votes = 4, 2, 0
+const (
+	NumberOfPlayers                                      = 3
+	p1, p2, p3                                           = "Player AAA", "Player BBB", "Player CCC"
+	p1Votes, p2Votes, p3Votes                            = 4, 2, 0
+	p1PointsPerRound, p2PointsPerRound, p3PointsPerRound = 9, 3, 9
+)
 
 func TestAddPlayer(t *testing.T) {
 	g := NewGame()
@@ -32,21 +35,7 @@ func TestAddPlayer(t *testing.T) {
 
 func TestCalculatePointsForAllRounds(t *testing.T) {
 	g := createTestableGame(t)
-
-	// we want to finish all the rounds -  there are 3 lefts
-	for i := 1; i < QuestionsPerRound; i++ {
-		g.SetVotesFromPlayer(createTwoVotes(p1, p2))
-		g.SetVotesFromPlayer(createTwoVotes(p2, p1))
-		g.SetVotesFromPlayer(createTwoVotes(p3, p1))
-		g.SetSelfVoteFromPlayer(createSelfVote(p1, MostVoted))
-		g.SetSelfVoteFromPlayer(createSelfVote(p2, Neutral))
-		g.SetSelfVoteFromPlayer(createSelfVote(p3, LeastVoted))
-
-		roundFinished, _ := g.IsRoundFinished()
-		if !roundFinished {
-			t.Errorf("expected round to be finished")
-		}
-	}
+	createFinishedGame(g, t)
 	// we add +1 since the round is done and thus making the "currentQuestion" to be 5
 	if g.currentQuestion != QuestionsPerRound+1 {
 		t.Errorf("expected current round to be %d, got %d", QuestionsPerRound, g.currentQuestion)
@@ -60,7 +49,43 @@ func TestCalculatePointsForAllRounds(t *testing.T) {
 			t.Errorf("expected player '%s' to have '%d' points, got '%d'", entry.Player, NeutralPoints*QuestionsPerRound, entry.Points)
 		}
 	}
-	fmt.Println(totalPointsAllRounds)
+}
+
+func TestCalculatePointsFromLastRound(t *testing.T) {
+	getLastQuestionFromPreviousRound := func(currentQuestion int) int {
+		return currentQuestion - 4
+	}
+
+	g := createTestableGame(t)
+	createFinishedGame(g, t)
+	p := g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentQuestion()))
+	if len(p) != 0 {
+		t.Errorf("expected points to be empty since we have only played one round, got '%d': current question is '%d'", len(p), g.GetCurrentQuestion())
+	}
+
+	// we play another round
+	createFinishedGame(g, t)
+
+	p = g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentQuestion()))
+	if len(p) != NumberOfPlayers {
+		t.Errorf("expected points slice to contain three players")
+	}
+
+	expectedPoints := expectedPointsAfterRound(1)
+	for _, entry := range p {
+		if expectedPoints[entry.Player] != entry.Points{
+			t.Errorf("expected points for player '%s' to be '%d', got '%d'", entry.Player, expectedPoints[entry.Player] , entry.Points)
+		}
+	}
+
+	createFinishedGame(g, t)
+	p =  g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentQuestion()))
+	expectedPointsTwoRounds := expectedPointsAfterRound(2)
+	for _, entry := range p {
+		if expectedPointsTwoRounds[entry.Player] != entry.Points{
+			t.Errorf("expected points for player '%s' to be '%d', got '%d'", entry.Player, expectedPointsTwoRounds[entry.Player] , entry.Points)
+		}
+	}
 }
 
 func TestFindMinAndMaxVotes(t *testing.T) {
@@ -164,7 +189,35 @@ func TestGivePoints(t *testing.T) {
 		}
 
 	}
+}
 
+func expectedPointsAfterRound(rounds int) map[string]int {
+	var result = make(map[string]int)
+	for i := 0; i < rounds; i++ {
+		result[p1] += p1PointsPerRound
+		result[p2] += p2PointsPerRound
+		result[p3] += p3PointsPerRound
+	}
+	return result
+}
+
+// createFinishedGame set votes and self votes to make the
+// current question to 5, which is what the finished state is
+func createFinishedGame(g *Game, t *testing.T) {
+	// we want to finish all the rounds -  there are 3 lefts
+	for i := 1; i < QuestionsPerRound; i++ {
+		g.SetVotesFromPlayer(createTwoVotes(p1, p2))
+		g.SetVotesFromPlayer(createTwoVotes(p2, p1))
+		g.SetVotesFromPlayer(createTwoVotes(p3, p1))
+		g.SetSelfVoteFromPlayer(createSelfVote(p1, MostVoted))
+		g.SetSelfVoteFromPlayer(createSelfVote(p2, Neutral))
+		g.SetSelfVoteFromPlayer(createSelfVote(p3, LeastVoted))
+
+		roundFinished, _ := g.IsRoundFinished()
+		if !roundFinished {
+			t.Errorf("expected round to be finished")
+		}
+	}
 }
 
 func createTestableGame(t *testing.T) *Game {

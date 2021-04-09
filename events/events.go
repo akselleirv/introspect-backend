@@ -96,6 +96,13 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			r.Broadcast(b)
 		})
 		h.AddEvent("register_self_vote", func(data map[string]interface{}) {
+			questionIsDoneMsg := func() ([]byte, error){
+				return json.Marshal(models.QuestionPointsEvent{
+					Event:           "question_is_done",
+					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
+					CurrentQuestion: r.Game().GetCurrentQuestion(),
+				})
+			}
 			var msg models.RegisterSelfVote
 			parseToJson(&data, &msg)
 			var b []byte
@@ -105,30 +112,24 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			log.Println(questionDone, allFinished)
 			if allFinished {
 				log.Println("game is done")
-				b, _ = json.Marshal(models.QuestionPointsEvent{
-					Event:           "question_is_done",
-					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
-					CurrentQuestion: r.Game().GetCurrentQuestion(),
-				})
+				b, _ = questionIsDoneMsg()
+				log.Println("question is done first res: ", string(b))
 				r.Broadcast(b)
 
 				// here we wait for the last question result to be displayed
 				// then we send the results for all rounds
-				time.Sleep(5 * time.Second)
-				currQ := r.Game().GetCurrentQuestion()
+				time.Sleep(3 * time.Second)
+				cq := r.Game().GetCurrentQuestion()
 
-				b, _ = json.Marshal(models.PlayersResultsTotal{
-					Event:                  "game_is_finished",
-					PlayersResultLastRound: r.Game().CalculatePoints(currQ-QuestionsPerRound+1, currQ),
-					PlayersResultsTotal:    r.Game().CalculatePoints(1, currQ),
+				b, _ = json.Marshal(models.PlayersResults{
+					Event:                        "game_is_finished",
+					PlayersResultExceptLastRound: r.Game().CalculatePoints(1, getLastQuestionFromPreviousRound(cq)),
+					PlayersResults:               r.Game().CalculatePoints(1, cq),
 				})
+				log.Println("game is finished: ", string(b))
 			} else if questionDone {
 				log.Println("all players have self voted for current question")
-				b, _ = json.Marshal(models.QuestionPointsEvent{
-					Event:           "question_is_done",
-					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
-					CurrentQuestion: r.Game().GetCurrentQuestion(),
-				})
+				b, _ = questionIsDoneMsg()
 			} else {
 				b, _ = json.Marshal(models.GenericEvent{
 					Event:  "player_has_self_voted",
@@ -139,6 +140,10 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 		})
 	}
 
+}
+
+func getLastQuestionFromPreviousRound(currentQuestion int) int {
+	return currentQuestion - 4
 }
 
 func parseToJson(data *map[string]interface{}, msg interface{}) {

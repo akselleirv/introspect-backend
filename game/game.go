@@ -10,6 +10,7 @@ import (
 const (
 	MaxVotesPerQuestion = 2
 	QuestionsPerRound   = 4
+	FirstQuestionNumber = 1
 )
 
 type SelfVote string
@@ -288,10 +289,6 @@ func findMinAndMaxVotes(playerStats []playerStat) (min, max int) {
 	return min, max
 }
 func findPlayerPositions(playerStats []playerStat, min, max int) (leastVoted, neutral, mostVoted []playerStat) {
-
-	log.Printf("max: '%d', min: '%d'", max, min)
-	log.Println("playerstats: ", playerStats)
-
 	for _, playerStat := range playerStats {
 		if playerStat.votes == max {
 			mostVoted = append(mostVoted, playerStat)

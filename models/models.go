@@ -59,10 +59,10 @@ type PointsEntrySimple struct {
 	Player string `json:"player"`
 	Points int    `json:"points"`
 }
-type PlayersResultsTotal struct {
-	Event                  string              `json:"event"`
-	PlayersResultLastRound []PointsEntrySimple `json:"playersResultLastRound"`
-	PlayersResultsTotal    []PointsEntrySimple `json:"playersResultsTotal"`
+type PlayersResults struct {
+	Event                        string              `json:"event"`
+	PlayersResultExceptLastRound []PointsEntrySimple `json:"playersResultExceptLastRound"`
+	PlayersResults               []PointsEntrySimple `json:"playersResults"`
 }
 
 type QuestionPoints []PointsEntry
