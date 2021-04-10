@@ -100,7 +100,7 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				return json.Marshal(models.QuestionPointsEvent{
 					Event:           "question_is_done",
 					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
-					CurrentQuestion: r.Game().GetCurrentQuestion(),
+					CurrentQuestion: r.Game().GetCurrentDoneQuestion(),
 				})
 			}
 			var msg models.RegisterSelfVote
@@ -119,7 +119,7 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				// here we wait for the last question result to be displayed
 				// then we send the results for all rounds
 				time.Sleep(3 * time.Second)
-				cq := r.Game().GetCurrentQuestion()
+				cq := r.Game().GetCurrentDoneQuestion()
 
 				b, _ = json.Marshal(models.PlayersResults{
 					Event:                        "game_is_finished",

@@ -58,32 +58,32 @@ func TestCalculatePointsFromLastRound(t *testing.T) {
 
 	g := createTestableGame(t)
 	createFinishedGame(g, t)
-	p := g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentQuestion()))
+	p := g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentDoneQuestion()))
 	if len(p) != 0 {
-		t.Errorf("expected points to be empty since we have only played one round, got '%d': current question is '%d'", len(p), g.GetCurrentQuestion())
+		t.Errorf("expected points to be empty since we have only played one round, got '%d': current question is '%d'", len(p), g.GetCurrentDoneQuestion())
 	}
 
 	// we play another round
 	createFinishedGame(g, t)
 
-	p = g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentQuestion()))
+	p = g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentDoneQuestion()))
 	if len(p) != NumberOfPlayers {
 		t.Errorf("expected points slice to contain three players")
 	}
 
 	expectedPoints := expectedPointsAfterRound(1)
 	for _, entry := range p {
-		if expectedPoints[entry.Player] != entry.Points{
-			t.Errorf("expected points for player '%s' to be '%d', got '%d'", entry.Player, expectedPoints[entry.Player] , entry.Points)
+		if expectedPoints[entry.Player] != entry.Points {
+			t.Errorf("expected points for player '%s' to be '%d', got '%d'", entry.Player, expectedPoints[entry.Player], entry.Points)
 		}
 	}
 
 	createFinishedGame(g, t)
-	p =  g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentQuestion()))
+	p = g.CalculatePoints(FirstQuestionNumber, getLastQuestionFromPreviousRound(g.GetCurrentDoneQuestion()))
 	expectedPointsTwoRounds := expectedPointsAfterRound(2)
 	for _, entry := range p {
-		if expectedPointsTwoRounds[entry.Player] != entry.Points{
-			t.Errorf("expected points for player '%s' to be '%d', got '%d'", entry.Player, expectedPointsTwoRounds[entry.Player] , entry.Points)
+		if expectedPointsTwoRounds[entry.Player] != entry.Points {
+			t.Errorf("expected points for player '%s' to be '%d', got '%d'", entry.Player, expectedPointsTwoRounds[entry.Player], entry.Points)
 		}
 	}
 }
@@ -191,6 +191,52 @@ func TestGivePoints(t *testing.T) {
 	}
 }
 
+func TestIsRoundFinished(t *testing.T) {
+	g := createTestableGame(t)
+
+	doNumberOfRound := func(numbers int) bool {
+		var allFinished, questionDone bool
+		for i := 0; i < numbers; i++ {
+			g.SetVotesFromPlayer(createTwoVotes(p1, p2))
+			g.SetVotesFromPlayer(createTwoVotes(p2, p1))
+			g.SetVotesFromPlayer(createTwoVotes(p3, p1))
+			g.SetSelfVoteFromPlayer(createSelfVote(p1, MostVoted))
+			g.SetSelfVoteFromPlayer(createSelfVote(p2, Neutral))
+			g.SetSelfVoteFromPlayer(createSelfVote(p3, LeastVoted))
+
+			questionDone, allFinished = g.IsRoundFinished()
+			if !questionDone {
+				t.Errorf("expected question to be done every loop")
+			}
+		}
+		return allFinished
+	}
+
+	af := doNumberOfRound(3)
+	if g.GetCurrentDoneQuestion() != 4 {
+		t.Errorf("expected that 4 questions should be done, got '%d'", g.GetCurrentDoneQuestion())
+	}
+	if !af  {
+		t.Errorf("expected round to be finished")
+	}
+
+	af = doNumberOfRound(4)
+	if !af {
+		t.Errorf("expected round to be finished")
+	}
+	if g.GetCurrentDoneQuestion() != 8 {
+		t.Errorf("expected that 8 questions should be done, got '%d'", g.GetCurrentDoneQuestion())
+	}
+
+	af = doNumberOfRound(4)
+	if !af {
+		t.Errorf("expected round to be finished")
+	}
+	if g.GetCurrentDoneQuestion() != 12 {
+		t.Errorf("expected that 12 questions should be done, got '%d'", g.GetCurrentDoneQuestion())
+	}
+}
+
 func expectedPointsAfterRound(rounds int) map[string]int {
 	var result = make(map[string]int)
 	for i := 0; i < rounds; i++ {
@@ -213,13 +259,14 @@ func createFinishedGame(g *Game, t *testing.T) {
 		g.SetSelfVoteFromPlayer(createSelfVote(p2, Neutral))
 		g.SetSelfVoteFromPlayer(createSelfVote(p3, LeastVoted))
 
-		roundFinished, _ := g.IsRoundFinished()
-		if !roundFinished {
-			t.Errorf("expected round to be finished")
+		questionsDone, _ := g.IsRoundFinished()
+		if !questionsDone {
+			t.Errorf("expected questions to be done")
 		}
 	}
 }
 
+// createTestableGame creates a game with one question done
 func createTestableGame(t *testing.T) *Game {
 	g := NewGame()
 	g.AddPlayer(p1)

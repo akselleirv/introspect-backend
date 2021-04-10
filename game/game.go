@@ -40,7 +40,7 @@ type Gamer interface {
 	// GetQuestions will return four question that
 	// the room has not yet received
 	GetQuestions() []models.Question
-	GetCurrentQuestion() int
+	GetCurrentDoneQuestion() int
 	SetVotesFromPlayer(question models.PlayerVotedOnQuestion)
 	IsSelfVoting() bool
 	SetSelfVoteFromPlayer(vote models.RegisterSelfVote)
@@ -73,8 +73,8 @@ func NewGame() Game {
 }
 
 // GetLatestQuestion returns the last question number that was answered
-func (g *Game) GetCurrentQuestion() int {
-	return g.currentQuestion -1
+func (g *Game) GetCurrentDoneQuestion() int {
+	return g.currentQuestion - 1
 }
 
 func (g *Game) SetPlayerReady(playerName string) error {
@@ -217,13 +217,13 @@ func (g *Game) IsRoundFinished() (bool, bool) {
 	}
 
 	questionDone := len(g.players) == totalSelfVotesForRound
-	areAllRoundsFinished := questionDone && g.currentQuestion == QuestionsPerRound
-	log.Printf("current round is '%d' and round finish status '%t'", g.currentQuestion, questionDone)
+	roundFinished := questionDone && g.currentQuestion%QuestionsPerRound == 0
+	log.Printf("current round: '%d' - questionDone: '%t' - roundFinished: '%t' ", g.currentQuestion, questionDone, roundFinished)
 
 	if questionDone {
 		g.currentQuestion++
 	}
-	return questionDone, areAllRoundsFinished
+	return questionDone, roundFinished
 }
 
 // CalculatePoints calculates points from the given range of questions
