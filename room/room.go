@@ -42,11 +42,11 @@ func NewRoom(name string, initEventHandlers func(r Roomer), handleMsg func(msg m
 	return r
 }
 
-func (r *Room) removeClient(clientName string) {
+func (r *Room) removeClient(name string) {
 	r.mu.Lock()
-	delete(r.clients, clientName)
-	r.game.RemovePlayer(clientName)
-	log.Printf("removed client '%s' from Room '%s'", clientName, r.name)
+	delete(r.clients, name)
+	r.game.RemovePlayer(name)
+	log.Printf("removed client '%s' from Room '%s'", name, r.name)
 	if len(r.clients) == 0 {
 		log.Printf("deleting Room '%s' -  no more players", r.name)
 		r.deleteRoom()
@@ -57,6 +57,10 @@ func (r *Room) removeClient(clientName string) {
 		Event:      "lobby_room_update",
 		Players:    playersUpdate,
 		IsAllReady: isAllReady,
+		ActionTrigger: models.LobbyActionTrigger{
+			Player: name,
+			Action: models.Left,
+		},
 	})
 	r.Broadcast(b)
 }
@@ -76,6 +80,10 @@ func (r *Room) AddClient(c *websocket.Conn, name string) {
 			Event:      "lobby_room_update",
 			Players:    playersUpdate,
 			IsAllReady: isAllReady,
+			ActionTrigger: models.LobbyActionTrigger{
+				Player: name,
+				Action: models.Joined,
+			},
 		})
 		r.Broadcast(b)
 	} else {
