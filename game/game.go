@@ -27,11 +27,10 @@ const (
 )
 
 type Gamer interface {
-	// set the player ready to play
-	SetPlayerReady(playerName string) error
+	SetPlayerReadyToStartGame(playerName string) error
 
-	// return true if all players are ready
-	// and a slice of players who are ready
+	// return true if all players are readyToStartGame
+	// and a slice of players who are readyToStartGame
 	IsPlayersReady() (bool, []string)
 	AddPlayer(playerName string) bool
 	RemovePlayer(playerName string)
@@ -48,6 +47,9 @@ type Gamer interface {
 
 	CalculatePointsForCurrentQuestion() models.QuestionPoints
 	CalculatePoints(from, to int) []models.PointsEntrySimple
+
+	SetPlayerReadyForNextRound(playerName string) error
+	IsNextRound() bool
 }
 
 type Game struct {
@@ -58,7 +60,8 @@ type Game struct {
 }
 
 type player struct {
-	ready bool
+	readyToStartGame  bool
+	readyForNextRound bool
 	// a map of question number and number of votes the player have received
 	votes     map[int]int
 	selfVotes map[int]SelfVote
@@ -77,16 +80,16 @@ func (g *Game) GetCurrentDoneQuestion() int {
 	return g.currentQuestion - 1
 }
 
-func (g *Game) SetPlayerReady(playerName string) error {
+func (g *Game) SetPlayerReadyToStartGame(playerName string) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	if p, exist := g.players[playerName]; exist {
-		p.ready = true
-		log.Println("setting player ready: ", playerName)
+		p.readyToStartGame = true
+		log.Println("setting player readyToStartGame: ", playerName)
 		return nil
 	} else {
-		err := fmt.Errorf("unable to find a player with the name '%s', when setting ready status to true", playerName)
+		err := fmt.Errorf("unable to find a player with the name '%s', when setting readyToStartGame status to true", playerName)
 		log.Println(err)
 		return err
 	}
@@ -99,7 +102,7 @@ func (g *Game) IsPlayersReady() (bool, []string) {
 
 	for name, p := range g.players {
 		log.Println(name, p)
-		if p.ready {
+		if p.readyToStartGame {
 			readyPlayers = append(readyPlayers, name)
 		}
 	}
@@ -114,7 +117,7 @@ func (g *Game) AddPlayer(playerName string) bool {
 		return false
 		// TODO: handle error - that name is taken
 	} else {
-		g.players[playerName] = &player{ready: false, votes: make(map[int]int), selfVotes: map[int]SelfVote{}}
+		g.players[playerName] = &player{readyToStartGame: false, votes: make(map[int]int), selfVotes: map[int]SelfVote{}}
 		return true
 	}
 }
@@ -126,8 +129,8 @@ func (g *Game) RemovePlayer(playerName string) {
 }
 
 // GetRoomStatus will get the status of the players
-// by returning a map of clientName and a boolean if the player is ready or not
-// and a boolean which is true when all players are ready
+// by returning a map of clientName and a boolean if the player is readyToStartGame or not
+// and a boolean which is true when all players are readyToStartGame
 func (g *Game) GetRoomStatus() ([]models.PlayerUpdate, bool) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
@@ -135,12 +138,12 @@ func (g *Game) GetRoomStatus() ([]models.PlayerUpdate, bool) {
 	var playersUpdate []models.PlayerUpdate
 	isAllReady := true
 	for name, player := range g.players {
-		if !player.ready {
+		if !player.readyToStartGame {
 			isAllReady = false
 		}
 		playersUpdate = append(playersUpdate, models.PlayerUpdate{
 			Name:    name,
-			IsReady: player.ready,
+			IsReady: player.readyToStartGame,
 		})
 	}
 	return playersUpdate, isAllReady
@@ -321,4 +324,46 @@ func givePoints(leastVoted, neutral, mostVoted []playerStat) models.QuestionPoin
 	calculatePoints(neutral, Neutral, NeutralPoints)
 	calculatePoints(mostVoted, MostVoted, MostVotedPoints)
 	return qp
+}
+
+// SetNextRoundFromPlayer sets the ready for next round flag to true
+func (g *Game) SetPlayerReadyForNextRound(playerName string) error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if p, exist := g.players[playerName]; exist {
+		p.readyForNextRound = true
+		return nil
+	} else {
+		err := fmt.Errorf("unable to find a player with the name '%s', when setting readyToStartGame status to true", playerName)
+		log.Println(err)
+		return err
+	}
+}
+
+// IsNextRound returns true if all player have set ready for next round flag
+func (g *Game) IsNextRound() bool {
+	allReady := true
+	g.mu.RLock()
+	for _, p := range g.players {
+		if p.readyForNextRound == false {
+			allReady = false
+		}
+	}
+	g.mu.RUnlock()
+
+	if allReady {
+		g.resetAllReadyForNextRound()
+	}
+	return allReady
+}
+
+// resetAllReadyForNextRound sets all ready for next round flags to false
+// it used before starting a new round
+func (g *Game) resetAllReadyForNextRound() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for _, p := range g.players {
+		p.readyForNextRound = false
+	}
 }

@@ -216,7 +216,7 @@ func TestIsRoundFinished(t *testing.T) {
 	if g.GetCurrentDoneQuestion() != 4 {
 		t.Errorf("expected that 4 questions should be done, got '%d'", g.GetCurrentDoneQuestion())
 	}
-	if !af  {
+	if !af {
 		t.Errorf("expected round to be finished")
 	}
 
@@ -235,6 +235,34 @@ func TestIsRoundFinished(t *testing.T) {
 	if g.GetCurrentDoneQuestion() != 12 {
 		t.Errorf("expected that 12 questions should be done, got '%d'", g.GetCurrentDoneQuestion())
 	}
+}
+
+func TestSetPlayerReadyForNextRound(t *testing.T) {
+	g := createTestableGame(t)
+
+	var tests = []struct {
+		testName              string
+		player                string
+		expectIsNextRoundToBe bool
+	}{
+		{"set p1 to ready, but next round is false", p1, false},
+		{"set p2 to ready, but next round is false", p2, false},
+		{"set p3 to ready, and next round is true", p3, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			_ = g.SetPlayerReadyForNextRound(tt.player)
+			if g.IsNextRound() != tt.expectIsNextRoundToBe {
+				t.Errorf("expected next round to be '%t', got '%t'", tt.expectIsNextRoundToBe, g.IsNextRound())
+			}
+		})
+	}
+
+	g.resetAllReadyForNextRound()
+	if g.IsNextRound() {
+		t.Errorf("expected next round to be false, got '%t'", g.IsNextRound())
+	}
+
 }
 
 func expectedPointsAfterRound(rounds int) map[string]int {

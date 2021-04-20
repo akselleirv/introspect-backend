@@ -48,7 +48,7 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			var msg models.GenericEvent
 			parseToJson(&data, &msg)
 
-			err := r.Game().SetPlayerReady(msg.Player)
+			err := r.Game().SetPlayerReadyToStartGame(msg.Player)
 			if err != nil {
 				// TODO: Handle error when setting player ready
 				return
@@ -96,7 +96,7 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			r.Broadcast(b)
 		})
 		h.AddEvent("register_self_vote", func(data map[string]interface{}) {
-			questionIsDoneMsg := func() ([]byte, error){
+			questionIsDoneMsg := func() ([]byte, error) {
 				return json.Marshal(models.QuestionPointsEvent{
 					Event:           "question_is_done",
 					QuestionPoints:  r.Game().CalculatePointsForCurrentQuestion(),
@@ -137,6 +137,22 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				})
 			}
 			r.Broadcast(b)
+		})
+		h.AddEvent("next_round", func(data map[string]interface{}) {
+			var msg models.GenericEvent
+			parseToJson(&data, &msg)
+			err := r.Game().SetPlayerReadyForNextRound(msg.Player)
+			if err != nil {
+				log.Println("unable to find player, removing the player from the game...")
+				r.Game().RemovePlayer(msg.Player)
+			}
+
+			if r.Game().IsNextRound() {
+				b, _ := json.Marshal(models.GenericEvent{
+					Event: "all_players_ready_for_next_round",
+				})
+				r.Broadcast(b)
+			}
 		})
 	}
 
