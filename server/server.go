@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/akselleirv/introspect/events"
 	"github.com/akselleirv/introspect/handler"
+	"github.com/akselleirv/introspect/models"
 	"github.com/akselleirv/introspect/room"
 	"github.com/gorilla/websocket"
 	"log"
@@ -12,6 +13,7 @@ import (
 
 type Server interface {
 	NewConn(c *websocket.Conn, playerName, roomName string)
+	IsGameInfoValid(roomName, playerName string) bool
 }
 
 type Serve struct {
@@ -39,6 +41,19 @@ func (s *Serve) NewConn(c *websocket.Conn, playerName, roomName string) {
 	s.addPlayerToRoom(c, playerName, roomName)
 }
 
+func (s *Serve) IsGameInfoValid(roomName, playerName string) (playerNameAvailable bool, roomIsJoinable bool) {
+	if r, ok := s.getRoom(roomName); ok {
+		playerNameAvailable = r.IsPlayerNameAvailable(playerName)
+		roomIsJoinable = r.IsRoomJoinable()
+		return playerNameAvailable, roomIsJoinable
+	} else {
+		// room does not exist - both are then valid
+		playerNameAvailable = true
+		roomIsJoinable = true
+		return playerNameAvailable, roomIsJoinable
+	}
+}
+
 func (s *Serve) deleteRoom(name string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -51,7 +66,11 @@ func (s *Serve) addPlayerToRoom(c *websocket.Conn, playerName, roomName string) 
 	if r, ok := s.getRoom(roomName); ok {
 		r.AddClient(c, playerName)
 	} else {
-		// handle error - that room does not exist
+		log.Println("unable to find room - this error message should not printed - this is awkward")
+		err := c.WriteJSON(models.GenericEvent{Event: "unable_to_find_room", Player: playerName})
+		if err != nil {
+			log.Printf("error sending message to player '%s': %s", playerName, err.Error())
+		}
 	}
 }
 
@@ -67,7 +86,7 @@ func (s *Serve) createRoom(name string, initEventHandlers func(r room.Roomer), m
 	if exist := s.roomExist(name); exist {
 		return nil, fmt.Errorf("room '%s' already exists", name)
 	}
-	return room.NewRoom(name, initEventHandlers, msgHandler, func() {s.deleteRoom(name)}), nil
+	return room.NewRoom(name, initEventHandlers, msgHandler, func() { s.deleteRoom(name) }), nil
 }
 
 func (s *Serve) registerNewRoom(name string, r room.Roomer) {

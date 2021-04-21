@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/akselleirv/introspect/server"
 	"github.com/gorilla/websocket"
@@ -15,9 +16,9 @@ func main() {
 
 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
 
-	newConn := func(w http.ResponseWriter, r *http.Request) {
-		player, room := getParams(r)
-		if player == "" || room == "" {
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		playerName, room := getParams(r)
+		if playerName == "" || room == "" {
 			fmt.Fprint(w, "room name or playername is missing from the URL")
 			return
 		}
@@ -28,13 +29,34 @@ func main() {
 			return
 		}
 
-		s.NewConn(c, player, room )
-	}
+		s.NewConn(c, playerName, room)
+	})
 
-	http.HandleFunc("/ws", newConn)
+	http.HandleFunc("/validateGameInfo", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		playerName, room := getParams(req)
+		if playerName == "" || room == "" {
+			fmt.Fprint(w, "room name or playername is missing from the URL")
+			return
+		}
+
+		p, r := s.IsGameInfoValid(room, playerName)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			PlayerNameAvailable bool `json:"playerNameAvailable"`
+			RoomIsJoinable      bool `json:"roomIsJoinable"`
+		}{
+			PlayerNameAvailable: p,
+			RoomIsJoinable:      r,
+		})
+		return
+	})
+
 	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "pong")
 	})
+
 	log.Println("starting server - listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
@@ -43,7 +65,7 @@ func main() {
 func getParams(r *http.Request) (string, string) {
 	player, ok := r.URL.Query()["player"]
 	if !ok || player[0] == "" {
-		log.Println("unable to find playerName in URL")
+		log.Println("unable to find player in URL")
 		return "", ""
 	}
 

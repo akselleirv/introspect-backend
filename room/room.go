@@ -16,6 +16,8 @@ type Roomer interface {
 	Broadcast(msg []byte)
 	SendMsg(clientName string, msg []byte)
 	Game() game.Gamer
+	IsPlayerNameAvailable(name string) bool
+	IsRoomJoinable() bool
 }
 
 type Room struct {
@@ -87,8 +89,7 @@ func (r *Room) AddClient(c *websocket.Conn, name string) {
 		})
 		r.Broadcast(b)
 	} else {
-		// name already exists
-		// handle error
+		log.Printf("awkward this error should never been diplayed - silently failing adding client to room - player '%s' already exist", name)
 	}
 }
 
@@ -110,3 +111,17 @@ func (r *Room) SendMsg(clientName string, msg []byte) {
 }
 
 func (r *Room) Game() game.Gamer { return &r.game }
+
+func (r *Room) IsPlayerNameAvailable(name string) bool {
+	if _, exist := r.clients[name]; exist {
+		return false
+	}
+	return true
+}
+
+func (r *Room) IsRoomJoinable() bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	rdy, _ := r.Game().IsPlayersReady()
+	return rdy == false
+}
