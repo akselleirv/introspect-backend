@@ -40,7 +40,6 @@ func readMessages(c *websocket.Conn, msgHandler func(msg map[string]interface{})
 			break
 			//TODO: Set a timer in order to move inactive clients
 		}
-		log.Printf("recv: %s", msg)
 
 		msgHandler(msg)
 	}

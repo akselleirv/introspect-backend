@@ -9,8 +9,6 @@ import (
 	"time"
 )
 
-const QuestionsPerRound = 4
-
 func Setup(h handler.Handler) func(r room.Roomer) {
 	return func(r room.Roomer) {
 		h.AddEvent("ping", func(data map[string]interface{}) {
@@ -66,7 +64,15 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			var msg models.GenericEvent
 			parseToJson(&data, &msg)
 
-			questions := r.Game().GetQuestions()
+			questions, err := r.Game().GetQuestions()
+			if err != nil {
+				b, _ := json.Marshal(models.ErrorMsg{
+					Event:   "error",
+					Message: err.Error(),
+				})
+				r.SendMsg(msg.Player, b)
+				return
+			}
 			b, _ := json.Marshal(struct {
 				Event     string            `json:"event"`
 				Questions []models.Question `json:"questions"`

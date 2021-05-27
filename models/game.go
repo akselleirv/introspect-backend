@@ -1,8 +1,19 @@
 package models
 
+type Questions struct {
+	Questions []Question `json:"questions"`
+}
+
 type Question struct {
-	QuestionID string `json:"questionID"`
-	Question   string `json:"question"`
+	Id string `json:"id"`
+	// Question value is the question translated based on the key.
+	// Currently supported languages are: 'no' and 'en'
+	// {"questions": {"en": "question", "no": "spørsmål"}}
+	Question QuestionTranslations `json:"question"`
+}
+type QuestionTranslations struct {
+	Norwegian string `json:"no"`
+	English   string `json:"en"`
 }
 
 type Vote struct {
@@ -45,4 +56,9 @@ type QuestionPointsEvent struct {
 	Event           string         `json:"event"`
 	QuestionPoints  QuestionPoints `json:"questionPoints"`
 	CurrentQuestion int            `json:"currentQuestion"`
+}
+
+type ErrorMsg struct {
+	Event   string `json:"event"`
+	Message string `json:"message"`
 }

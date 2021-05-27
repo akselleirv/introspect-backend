@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"github.com/akselleirv/introspect/models"
+	"github.com/akselleirv/introspect/question"
 	"log"
 	"sync"
 )
@@ -12,6 +13,8 @@ const (
 	QuestionsPerRound   = 4
 	FirstQuestionNumber = 1
 )
+
+const FilePath = "./questions.json"
 
 type SelfVote string
 
@@ -38,7 +41,7 @@ type Gamer interface {
 
 	// GetQuestions will return four question that
 	// the room has not yet received
-	GetQuestions() []models.Question
+	GetQuestions() ([]models.Question, error)
 	GetCurrentDoneQuestion() int
 	SetVotesFromPlayer(question models.PlayerVotedOnQuestion)
 	IsSelfVoting() bool
@@ -56,6 +59,7 @@ type Game struct {
 	players         map[string]*player
 	currentQuestion int
 	questions       []models.Question
+	questioner      question.Questioner
 	mu              sync.RWMutex
 }
 
@@ -71,6 +75,7 @@ func NewGame() Game {
 	return Game{
 		players:         make(map[string]*player),
 		currentQuestion: 1,
+		questioner:      question.NewStore(FilePath),
 		mu:              sync.RWMutex{},
 	}
 }
@@ -150,25 +155,36 @@ func (g *Game) GetRoomStatus() ([]models.PlayerUpdate, bool) {
 }
 
 // loadQuestions will make the call to the question database and set it question on the Game struct
-func (g *Game) loadQuestions() {
-	var mockQuestion models.Question
-	for i := 0; i < 4; i++ {
-		mockQuestion.QuestionID = fmt.Sprintf("ID_%d", i+1) //TODO: add proper ID
-		mockQuestion.Question = fmt.Sprintf("mock question number %d", i+1)
-		g.questions = append(g.questions, mockQuestion)
+func (g *Game) loadQuestions() error {
+	newQuestions, err := g.questioner.GetFourUnique(getQuestionIds(g.questions))
+	if err != nil {
+		return err
 	}
+	g.questions = append(g.questions, newQuestions...)
+	return nil
+}
+
+func getQuestionIds(qs []models.Question) []string {
+	var ids []string
+	for _, q := range qs {
+		ids = append(ids, q.Id)
+	}
+	return ids
 }
 
 // GetQuestions will return the last four questions
-func (g *Game) GetQuestions() []models.Question {
+func (g *Game) GetQuestions() ([]models.Question, error) {
 	g.mu.Lock()
+	defer g.mu.Unlock()
 	if len(g.questions) < g.currentQuestion {
-		g.loadQuestions()
+		err := g.loadQuestions()
+		if err != nil {
+			return nil, fmt.Errorf("no more questions: %w", err)
+		}
 	}
-	g.mu.Unlock()
 
 	lastFourQuestions := g.questions[len(g.questions)-4:]
-	return lastFourQuestions
+	return lastFourQuestions, nil
 }
 
 // SetVotesFromPlayer register the vote from the player

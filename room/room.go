@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/websocket"
 	"log"
 	"sync"
-	"time"
 )
 
 type Roomer interface {
@@ -94,11 +93,9 @@ func (r *Room) AddClient(c *websocket.Conn, name string) {
 }
 
 func (r *Room) Broadcast(msg []byte) {
-	t := time.Now()
 	for _, p := range r.clients {
 		p.Send(msg)
 	}
-	log.Println("Time used to broadcast: ", time.Since(t))
 }
 
 func (r *Room) SendMsg(clientName string, msg []byte) {

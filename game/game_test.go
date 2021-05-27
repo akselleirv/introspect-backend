@@ -328,8 +328,8 @@ func createSelfVote(playerName string, selfVote SelfVote) models.RegisterSelfVot
 		Player: playerName,
 		Choice: string(selfVote),
 		Question: models.Question{
-			QuestionID: "not_used_yet",
-			Question:   "not_used_yet",
+			Id:       "not_used_yet",
+			Question: models.QuestionTranslations{},
 		},
 	}
 }

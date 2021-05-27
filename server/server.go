@@ -8,6 +8,7 @@ import (
 	"github.com/akselleirv/introspect/room"
 	"github.com/gorilla/websocket"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -27,7 +28,7 @@ func NewServer() *Serve {
 
 func (s *Serve) NewConn(c *websocket.Conn, playerName, roomName string) {
 	if exist := s.roomExist(roomName); !exist {
-		h := handler.NewHandler()
+		h := handler.NewHandler(log.New(os.Stdout, "", 64))
 		initEventHandlers := events.Setup(h)
 		msgHandler := h.HandleMsg()
 		r, err := s.createRoom(roomName, initEventHandlers, msgHandler)

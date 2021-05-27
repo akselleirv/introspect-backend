@@ -15,10 +15,11 @@ type Handler interface {
 
 type Handle struct {
 	EventHandlers map[string]eventHandler
+	l             *log.Logger
 }
 
-func NewHandler() *Handle {
-	return &Handle{EventHandlers: make(map[string]eventHandler)}
+func NewHandler(l *log.Logger) *Handle {
+	return &Handle{EventHandlers: make(map[string]eventHandler), l: l}
 }
 
 func (h *Handle) AddEvent(eventName string, fn eventHandler) {
@@ -38,6 +39,9 @@ func (h *Handle) HandleMsg() func(data map[string]interface{}) {
 			log.Println("unable to find event in event handlers: ", e)
 			return
 		}
+
+		h.l.Printf("- %s - %s \n", e, msg)
+
 		handler(msg)
 	}
 }
