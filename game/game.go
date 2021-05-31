@@ -14,8 +14,6 @@ const (
 	FirstQuestionNumber = 1
 )
 
-const FilePath = "./questions.json"
-
 type SelfVote string
 
 const (
@@ -71,11 +69,11 @@ type player struct {
 	selfVotes map[int]SelfVote
 }
 
-func NewGame() Game {
+func NewGame(questionFilePath string) Game {
 	return Game{
 		players:         make(map[string]*player),
 		currentQuestion: 1,
-		questioner:      question.NewStore(FilePath),
+		questioner:      question.NewStore(questionFilePath),
 		mu:              sync.RWMutex{},
 	}
 }
@@ -176,7 +174,7 @@ func getQuestionIds(qs []models.Question) []string {
 func (g *Game) GetQuestions() ([]models.Question, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if len(g.questions) < g.currentQuestion {
+	if len(g.questions) <= g.currentQuestion {
 		err := g.loadQuestions()
 		if err != nil {
 			return nil, fmt.Errorf("no more questions: %w", err)

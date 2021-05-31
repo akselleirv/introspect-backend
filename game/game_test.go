@@ -1,7 +1,9 @@
 package game
 
 import (
+	"fmt"
 	"github.com/akselleirv/introspect/models"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -12,8 +14,10 @@ const (
 	p1PointsPerRound, p2PointsPerRound, p3PointsPerRound = 9, 3, 9
 )
 
+const TestQuestionsPath = "../testQuestions.json"
+
 func TestAddPlayer(t *testing.T) {
-	g := NewGame()
+	g := NewGame(TestQuestionsPath)
 	players := []string{"Player AAA", "Player BBB"}
 	var ok bool
 	ok = g.AddPlayer(players[0])
@@ -265,6 +269,39 @@ func TestSetPlayerReadyForNextRound(t *testing.T) {
 
 }
 
+func TestGame_GetQuestions(t *testing.T) {
+	g := createTestableGame(t)
+	var questions []models.Question
+	var err error
+	var expectedQuestions []string
+	for i := 1; i <= 8; i++ {
+		expectedQuestions = append(expectedQuestions, fmt.Sprintf("test question %d", i))
+	}
+
+	assertQuestions := func(startQuestionNum int) {
+		for i, qNum := 0, startQuestionNum; i < 4; i++ {
+			assert.Contains(t, expectedQuestions, questions[i].Question.English)
+			qNum++
+		}
+	}
+	questions, err = g.GetQuestions()
+	assert.NoError(t, err)
+	assert.Len(t, questions, 4)
+	assertQuestions(1)
+
+	createFinishedGame(g, t)
+	questions, err = g.GetQuestions()
+	assert.NoError(t, err)
+	assert.Len(t, questions, 4)
+	assertQuestions(5)
+
+	createFinishedGame(g, t)
+	questions, err = g.GetQuestions()
+	assert.Nil(t, questions, "should be no more questions in the testQuestions.json")
+	assert.EqualError(t, err, "no more questions: unable to find 4 questions, found 0")
+
+}
+
 func expectedPointsAfterRound(rounds int) map[string]int {
 	var result = make(map[string]int)
 	for i := 0; i < rounds; i++ {
@@ -296,7 +333,7 @@ func createFinishedGame(g *Game, t *testing.T) {
 
 // createTestableGame creates a game with one question done
 func createTestableGame(t *testing.T) *Game {
-	g := NewGame()
+	g := NewGame(TestQuestionsPath)
 	g.AddPlayer(p1)
 	g.AddPlayer(p2)
 	g.AddPlayer(p3)

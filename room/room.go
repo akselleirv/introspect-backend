@@ -10,6 +10,8 @@ import (
 	"sync"
 )
 
+const QuestionsFilePath = "./questions.json"
+
 type Roomer interface {
 	AddClient(c *websocket.Conn, name string)
 	Broadcast(msg []byte)
@@ -34,7 +36,7 @@ func NewRoom(name string, initEventHandlers func(r Roomer), handleMsg func(msg m
 	r := &Room{
 		name:       name,
 		clients:    make(map[string]client.Clienter),
-		game:       game.NewGame(),
+		game:       game.NewGame(QuestionsFilePath),
 		msgHandler: handleMsg,
 		deleteRoom: deleteRoom,
 		mu:         sync.RWMutex{},

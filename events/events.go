@@ -61,14 +61,15 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			r.Broadcast(b)
 		})
 		h.AddEvent("get_questions_request", func(data map[string]interface{}) {
+			const event = "get_questions_response"
 			var msg models.GenericEvent
 			parseToJson(&data, &msg)
 
 			questions, err := r.Game().GetQuestions()
 			if err != nil {
 				b, _ := json.Marshal(models.ErrorMsg{
-					Event:   "error",
-					Message: err.Error(),
+					Event:   event,
+					Error: err.Error(),
 				})
 				r.SendMsg(msg.Player, b)
 				return
@@ -77,7 +78,7 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				Event     string            `json:"event"`
 				Questions []models.Question `json:"questions"`
 			}{
-				Event:     "get_questions_response",
+				Event:     event,
 				Questions: questions,
 			})
 			r.SendMsg(msg.Player, b)

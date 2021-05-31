@@ -59,6 +59,6 @@ type QuestionPointsEvent struct {
 }
 
 type ErrorMsg struct {
-	Event   string `json:"event"`
-	Message string `json:"message"`
+	Event string `json:"event"`
+	Error string `json:"error"`
 }

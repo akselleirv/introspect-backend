@@ -6,7 +6,9 @@ import (
 	"github.com/akselleirv/introspect/models"
 	"io"
 	"log"
+	"math/rand"
 	"os"
+	"time"
 )
 
 const (
@@ -24,7 +26,15 @@ type Store struct {
 }
 
 func NewStore(filePath string) *Store {
-	return &Store{q: load(filePath)}
+	s := Store{q: load(filePath)}
+
+	rand.Seed(time.Now().UnixNano())
+	rand.Shuffle(len(s.q.Questions),
+		func(i, j int) {
+			s.q.Questions[i], s.q.Questions[j] = s.q.Questions[j], s.q.Questions[i]
+		})
+
+	return &s
 }
 
 func (s *Store) GetFourUnique(usedIds []string) ([]models.Question, error) {
