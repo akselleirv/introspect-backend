@@ -51,13 +51,16 @@ type Gamer interface {
 
 	SetPlayerReadyForNextRound(playerName string) error
 	IsNextRound() bool
+
+	AddCustomQuestion(question string)
 }
 
 type Game struct {
 	players         map[string]*player
 	currentQuestion int
+	customQuestions []models.Question
 	questions       []models.Question
-	questioner      question.Questioner
+	questionStore   question.Questioner
 	mu              sync.RWMutex
 }
 
@@ -73,7 +76,7 @@ func NewGame(questionFilePath string) Game {
 	return Game{
 		players:         make(map[string]*player),
 		currentQuestion: 1,
-		questioner:      question.NewStore(questionFilePath),
+		questionStore:   question.NewStore(questionFilePath),
 		mu:              sync.RWMutex{},
 	}
 }
@@ -154,12 +157,30 @@ func (g *Game) GetRoomStatus() ([]models.PlayerUpdate, bool) {
 
 // loadQuestions will make the call to the question database and set it question on the Game struct
 func (g *Game) loadQuestions() error {
-	newQuestions, err := g.questioner.GetFourUnique(getQuestionIds(g.questions))
+	result := make([]models.Question, QuestionsPerRound)
+	if g.isCustomQuestions() {
+		result = g.getCustomQuestions()
+	}
+	newQuestions, err := g.questionStore.GetFourUnique(getQuestionIds(g.questions))
 	if err != nil {
 		return err
 	}
-	g.questions = append(g.questions, newQuestions...)
+	result = append(result, newQuestions...)
+	g.questions = append(g.questions, result[0:QuestionsPerRound]...)
 	return nil
+}
+func (g *Game) isCustomQuestions() bool {
+	return len(g.customQuestions) > 0
+}
+
+func (g *Game) getCustomQuestions() []models.Question {
+	result := make([]models.Question, QuestionsPerRound)
+	var i int
+	for i = 0; i < len(g.customQuestions); i++ {
+		result[i] = g.customQuestions[i]
+	}
+	g.customQuestions = g.customQuestions[i:]
+	return result[:i]
 }
 
 func getQuestionIds(qs []models.Question) []string {
@@ -380,4 +401,14 @@ func (g *Game) resetAllReadyForNextRound() {
 	for _, p := range g.players {
 		p.readyForNextRound = false
 	}
+}
+
+func (g *Game) AddCustomQuestion(question string) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	// we do not know the language, but we still want the Question type
+	g.customQuestions = append(g.customQuestions, models.Question{
+		Id:       "",
+		Question: models.QuestionTranslations{Norwegian: question, English: question},
+	})
 }

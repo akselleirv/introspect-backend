@@ -68,7 +68,7 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 			questions, err := r.Game().GetQuestions()
 			if err != nil {
 				b, _ := json.Marshal(models.ErrorMsg{
-					Event:   event,
+					Event: event,
 					Error: err.Error(),
 				})
 				r.SendMsg(msg.Player, b)
@@ -160,6 +160,18 @@ func Setup(h handler.Handler) func(r room.Roomer) {
 				})
 				r.Broadcast(b)
 			}
+		})
+		h.AddEvent("add_question", func(data map[string]interface{}) {
+			var msg models.AddQuestion
+			parseToJson(&data, &msg)
+			r.Game().AddCustomQuestion(msg.Question)
+			b, _ := json.Marshal(models.GenericEvent{
+				Player: msg.Player,
+				// TODO: fix this bad code -  I'm lazy
+				Event:  "player_added_custom_question",
+				Action: "player_added_custom_question",
+			})
+			r.Broadcast(b)
 		})
 	}
 

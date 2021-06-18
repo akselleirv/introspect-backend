@@ -331,6 +331,51 @@ func createFinishedGame(g *Game, t *testing.T) {
 	}
 }
 
+func TestGame_AddCustomQuestion(t *testing.T) {
+	expectedQuestions := []string{"q1", "q2", "q3", "q4"}
+	g := createTestableGame(t)
+	for _, q := range expectedQuestions {
+		g.AddCustomQuestion(q)
+	}
+
+	assert.Len(t, g.customQuestions, len(expectedQuestions))
+	for i, q := range g.customQuestions {
+		assert.Equal(t, expectedQuestions[i], q.Question.English)
+		assert.Equal(t, expectedQuestions[i], q.Question.Norwegian)
+	}
+}
+
+func TestGame_getCustomQuestions(t *testing.T) {
+	expectedQuestions := []string{"q1", "q2", "q3", "q4"}
+	g := createTestableGame(t)
+	for _, q := range expectedQuestions {
+		g.AddCustomQuestion(q)
+	}
+
+	for i, question := range g.getCustomQuestions() {
+		assert.Equal(t, expectedQuestions[i], question.Question.English)
+	}
+
+	assert.Len(t, g.customQuestions, 0)
+}
+
+func TestGame_loadQuestions(t *testing.T) {
+	expectedQuestions := []string{"q1", "q2"}
+	g := createTestableGame(t)
+	g.AddCustomQuestion(expectedQuestions[0])
+	g.AddCustomQuestion(expectedQuestions[1])
+
+	err := g.loadQuestions()
+
+	assert.NoError(t, err)
+	assert.Len(t, g.customQuestions, 0)
+	assert.Len(t, g.questions, 4)
+	assert.Equal(t, expectedQuestions[0], g.questions[0].Question.English)
+	assert.Equal(t, expectedQuestions[1], g.questions[1].Question.English)
+	assert.NotEmpty(t, g.questions[2])
+	assert.NotEmpty(t, g.questions[3])
+}
+
 // createTestableGame creates a game with one question done
 func createTestableGame(t *testing.T) *Game {
 	g := NewGame(TestQuestionsPath)

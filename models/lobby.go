@@ -15,6 +15,7 @@ type Ping struct {
 type GenericEvent struct {
 	Event  string `json:"event"`
 	Player string `json:"player"`
+	Action string `json:"action,omitempty"`
 }
 
 type LobbyChat struct {
@@ -38,4 +39,9 @@ type LobbyActionTrigger struct {
 type PlayerUpdate struct {
 	Name    string `json:"name"`
 	IsReady bool   `json:"isReady"`
+}
+
+type AddQuestion struct {
+	Player   string `json:"player"`
+	Question string `json:"question"`
 }
