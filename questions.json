@@ -27,6 +27,174 @@
         "no": "Den mest kreative",
         "en": "The most creative"
       }
+    },
+
+    {
+
+      "id":"1",
+
+      "questions":{
+
+        "no":"Hvem har vært i flest forhold?",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"2",
+
+      "questions":{
+
+        "no":"Hvem er mest desperat?",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"3",
+
+      "questions":{
+
+        "no":"Hvem har det beste gamet?",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"4",
+
+      "questions":{
+
+        "no":"Personen som stresser mest",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"5",
+
+      "questions":{
+
+        "no":"Den som klarer å drikke mest?",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"6",
+
+      "questions":{
+
+        "no":"Hvem blir først full?",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"7",
+
+      "questions":{
+
+        "no":"Årets treigeste går til",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"8",
+
+      "questions":{
+
+        "no":"Hvem er elendig til å holde avtaler",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"9",
+
+      "questions":{
+
+        "no":"Sterkest konkurranse instinkt?",
+
+        "en":""
+
+       }
+
+},
+
+    {
+
+      "id":"10",
+
+      "questions":{
+
+        "no":"Dårligste taperen?",
+
+        "en":""
+
+       }
+
+    },
+
+    {
+
+      "id":"11",
+
+      "questions":{
+
+        "no":"... er utrolig glad i sin egen stemme",
+
+        "en":""
+
+       }
+
+},
+
+    {
+
+      "id":"12",
+
+      "questions":{
+
+        "no":"Mest undervurderte spilleren på byen er?",
+
+        "en":""
+
+       }
+
     }
   ]
 }
