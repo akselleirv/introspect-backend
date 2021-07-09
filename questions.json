@@ -28,173 +28,89 @@
         "en": "The most creative"
       }
     },
-
     {
-
-      "id":"1",
-
-      "questions":{
-
-        "no":"Hvem har vært i flest forhold?",
-
-        "en":""
-
-       }
-
+      "id": "67010fb3-8207-491b-8798-2dc6de7da85d",
+      "question": {
+        "no": "Hvem har vært i flest forhold?",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"2",
-
-      "questions":{
-
-        "no":"Hvem er mest desperat?",
-
-        "en":""
-
-       }
-
+      "id": "1354e431-2d8d-44dd-bfa7-2d106dfa3655",
+      "question": {
+        "no": "Hvem er mest desperat?",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"3",
-
-      "questions":{
-
-        "no":"Hvem har det beste gamet?",
-
-        "en":""
-
-       }
-
+      "id": "5f9fd242-f5e2-4f24-b6b9-3abab90f7cfc",
+      "question": {
+        "no": "Hvem har det beste gamet?",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"4",
-
-      "questions":{
-
-        "no":"Personen som stresser mest",
-
-        "en":""
-
-       }
-
+      "id": "bc6d2e9f-9cf8-4584-876a-3669198f5859",
+      "question": {
+        "no": "Personen som stresser mest",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"5",
-
-      "questions":{
-
-        "no":"Den som klarer å drikke mest?",
-
-        "en":""
-
-       }
-
+      "id": "38c7bf71-3351-4861-95b5-aec40b8f1a5f",
+      "question": {
+        "no": "Den som klarer å drikke mest?",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"6",
-
-      "questions":{
-
-        "no":"Hvem blir først full?",
-
-        "en":""
-
-       }
-
+      "id": "70d63199-bfa9-4174-aea4-99b2c70c891d",
+      "question": {
+        "no": "Hvem blir først full?",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"7",
-
-      "questions":{
-
-        "no":"Årets treigeste går til",
-
-        "en":""
-
-       }
-
+      "id": "b3b85f0f-cb27-46e3-98e0-17e35a0d3e50",
+      "question": {
+        "no": "Årets treigeste går til",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"8",
-
-      "questions":{
-
-        "no":"Hvem er elendig til å holde avtaler",
-
-        "en":""
-
-       }
-
+      "id": "64664be3-ef0e-4b44-86f5-6cadfa4fbfc2",
+      "question": {
+        "no": "Hvem er elendig til å holde avtaler",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"9",
-
-      "questions":{
-
-        "no":"Sterkest konkurranse instinkt?",
-
-        "en":""
-
-       }
-
-},
-
-    {
-
-      "id":"10",
-
-      "questions":{
-
-        "no":"Dårligste taperen?",
-
-        "en":""
-
-       }
-
+      "id": "798ce384-d711-4ed0-8ae6-94f9179c8714",
+      "question": {
+        "no": "Sterkeste konkurranse instinkt?",
+        "en": ""
+      }
     },
-
     {
-
-      "id":"11",
-
-      "questions":{
-
-        "no":"... er utrolig glad i sin egen stemme",
-
-        "en":""
-
-       }
-
-},
-
+      "id": "a35af4c2-97a4-4543-a96e-c4e359568eba",
+      "question": {
+        "no": "Dårligste taperen?",
+        "en": ""
+      }
+    },
     {
-
-      "id":"12",
-
-      "questions":{
-
-        "no":"Mest undervurderte spilleren på byen er?",
-
-        "en":""
-
-       }
-
+      "id": "0c985892-8e73-4d72-bceb-c20aa3324bd5",
+      "question": {
+        "no": "... er utrolig glad i sin egen stemme",
+        "en": ""
+      }
+    },
+    {
+      "id": "905c76bd-528a-4a8e-8d1c-0ba2b7c3254d",
+      "question": {
+        "no": "Mest undervurderte spilleren på byen er?",
+        "en": ""
+      }
     }
   ]
 }
